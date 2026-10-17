@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Calculadora de títulos vencidos, cartório, protesto e custas para contas a receber.">
+    <title>Calculadora de Títulos</title>
+    <script>
+        /* Aplica o tema salvo antes da primeira pintura (evita "piscar" claro/escuro). */
+        try {
+            var t = localStorage.getItem("calculadora-titulos:tema");
+            if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+        } catch (e) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="planilha.css">
+</head>
+<body>
+
+<header>
+    <div class="logo">CT</div>
+
+    <div class="brand">
+        <strong>Calculadora de Títulos</strong>
+        <small>Contas a receber</small>
+    </div>
+
+    <nav id="menu">
+        <button type="button" class="nav-btn active" data-view="calculadora">Calculadora</button>
+        <button type="button" class="nav-btn" data-view="custas">Custas e Protestos</button>
+        <button type="button" class="nav-btn" data-view="consulta-avancada">Consulta Avançada</button>
+        <button type="button" class="nav-btn" data-view="planilha" hidden>Planilha</button>
+        <button type="button" class="nav-btn" data-view="whatsapp" hidden>WhatsApp</button>
+        <button type="button" class="nav-btn" data-view="email" hidden>E-mail</button>
+        <button type="button" class="nav-btn" id="nav-acesso" data-view="acesso">🔒 Acesso restrito</button>
+        <button type="button" class="btn-mini" id="ac-sair" hidden>Sair</button>
+    </nav>
+
+    <div class="clock">
+        <span id="data-atual">--</span>
+        <strong id="hora-atual">--:--:--</strong>
+    </div>
+
+    <button type="button" class="tema-toggle" id="btn-tema" aria-pressed="false"
+            aria-label="Mudar para Modo Escuro" title="Mudar para Modo Escuro">
+        <svg class="ico-lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+</header>
+
+<main>
+
+<!-- =====================================================
+     VISÃO 1 — CALCULADORA SIMPLES
+===================================================== -->
+<div class="view active" id="view-calculadora">
+
+    <section class="hero">
+        <span class="tag">FERRAMENTA GRATUITA</span>
+
+        <h1>Calculadora de <span>Títulos</span></h1>
+
+        <p>
+            Consulte de forma rápida o cronograma estimado de um título vencido,
+            sua entrada em cartório, chegada da carta e eventual protesto.
+        </p>
+
+        <div class="motivation">
+            <span class="star">✦</span>
+            <span id="mensagem">Organização hoje evita problemas amanhã.</span>
+        </div>
+    </section>
+
+    <section class="card calculator" id="calculadora">
+        <div class="title">
+            <div class="number">01</div>
+            <div>
+                <h2>Calculadora</h2>
+                <p>Informe a data de vencimento do título.</p>
+            </div>
+        </div>
+
+        <form id="form-calculadora">
+            <div class="fields">
+                <div class="field">
+                    <label for="vencimento">Data de vencimento</label>
+                    <input type="date" id="vencimento" required>
+                    <small>Data original do boleto.</small>
+                </div>
+
+                <div class="field">
+                    <label for="consulta">Data da consulta</label>
+                    <input type="date" id="consulta" required>
+                    <small>Preenchida automaticamente com a data atual.</small>
+                </div>
+            </div>
+
+            <button type="submit" class="primary">
+                <span>CALCULAR SITUAÇÃO</span>
+                <strong>→</strong>
+            </button>
+        </form>
+
+        <div id="resultado" class="resultado" hidden>
+            <div id="status" class="status"></div>
+
+            <div class="resumo">
+                <div>
+                    <small>SITUAÇÃO</small>
+                    <strong id="situacao">-</strong>
+                </div>
+                <div>
+                    <small>TEMPO</small>
+                    <strong id="dias">-</strong>
+                </div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="dot blue">0</div>
+                    <div>
+                        <small>VENCIMENTO</small>
+                        <strong id="r-vencimento">-</strong>
+                        <p>Data original do título.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="dot yellow">5</div>
+                    <div>
+                        <small>ENTRADA ESTIMADA NO CARTÓRIO</small>
+                        <strong id="r-cartorio">-</strong>
+                        <p>5 dias corridos após o vencimento.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="dot orange">15</div>
+                    <div>
+                        <small>CARTA DE INTIMAÇÃO</small>
+                        <strong id="r-carta">-</strong>
+                        <p>Estimativa de 15 dias corridos após a entrada.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="dot red">3</div>
+                    <div>
+                        <small>PROTESTO ESTIMADO</small>
+                        <strong id="r-protesto">-</strong>
+                        <p>3 dias úteis após a carta, conforme a regra configurada.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="next">
+                <strong>Próxima etapa:</strong>
+                <span id="proxima">-</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="title">
+            <div class="number orange">02</div>
+            <div>
+                <h2>Cronograma</h2>
+                <p>Regras utilizadas nesta calculadora.</p>
+            </div>
+        </div>
+
+        <div class="rules">
+            <div><strong>Dia 0</strong><p>Data original de vencimento do boleto.</p></div>
+            <div><strong>+5 dias</strong><p>Entrada estimada no cartório.</p></div>
+            <div><strong>+15 dias</strong><p>Estimativa de entrega da carta.</p></div>
+            <div><strong>+3 dias úteis</strong><p>Prazo configurado para o protesto.</p></div>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Importante</strong>
+            <p>
+                Os resultados são estimativas baseadas nas regras configuradas nesta
+                ferramenta. Prazos reais podem variar conforme o banco, cartório,
+                procedimento, data efetiva de intimação e calendário de feriados.
+            </p>
+        </div>
+    </section>
+</div>
+
+<!-- =====================================================
+     VISÃO 2 — CUSTAS E PROTESTOS (MÚLTIPLOS TÍTULOS)
+===================================================== -->
+<div class="view" id="view-custas">
+
+    <section class="card" id="responsavel-card">
+        <div class="title">
+            <div class="number orange">01</div>
+            <div>
+                <h2>Responsável pelo cálculo</h2>
+                <p>O nome aparece no relatório impresso, no PDF e no Excel.</p>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="responsavel">Nome do responsável</label>
+            <input type="text" id="responsavel" autocomplete="name" placeholder="Ex.: Maria Souza" required>
+        </div>
+    </section>
+
+    <section class="card calculator" id="custas">
+        <div class="title">
+            <div class="number cyan">02</div>
+            <div>
+                <h2>Cálculo de Custas e Protestos</h2>
+                <p>Múltiplos títulos, agrupados por cliente.</p>
+            </div>
+        </div>
+
+        <form id="form-titulo" novalidate>
+
+            <fieldset class="tipo-box">
+                <legend>O que você deseja calcular?</legend>
+                <div class="radio-group">
+                    <label class="radio-card">
+                        <input type="radio" name="tipo" value="Custas" checked>
+                        <span>Custas</span>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="tipo" value="Protesto">
+                        <span>Protesto</span>
+                    </label>
+                </div>
+                <div id="tipo-aviso" class="form-msg aviso" hidden></div>
+            </fieldset>
+
+            <div class="fields fields-3">
+                <div class="field">
+                    <label for="t-codigo">Código do Cliente</label>
+                    <input type="text" id="t-codigo" autocomplete="off" placeholder="Ex.: 10234" required>
+                </div>
+
+                <div class="field span-2">
+                    <label for="t-razao">Razão Social</label>
+                    <input type="text" id="t-razao" autocomplete="off" placeholder="Nome da empresa" required>
+                </div>
+
+                <div class="field">
+                    <label for="t-numero">Número do Título (Boleto/Nota)</label>
+                    <input type="text" id="t-numero" autocomplete="off" placeholder="Ex.: NF 4587-1" required>
+                </div>
+
+                <div class="field">
+                    <label for="t-valor">Valor Original do Título (R$)</label>
+                    <input type="text" id="t-valor" inputmode="decimal" autocomplete="off" placeholder="0,00" required>
+                </div>
+
+                <div class="field">
+                    <label for="t-multa">Multa Fixa (%) <span style="font-weight:400">— opcional</span></label>
+                    <input type="text" id="t-multa" inputmode="decimal" autocomplete="off" placeholder="Ex.: 2 (em branco se não houver)">
+                </div>
+
+                <div class="field">
+                    <label for="t-percentual">Porcentagem diária (% ao dia)</label>
+                    <input type="text" id="t-percentual" inputmode="decimal" autocomplete="off" placeholder="Ex.: 2,5" required>
+                </div>
+
+                <div class="field">
+                    <label for="t-periodo">Aplicar a porcentagem</label>
+                    <select id="t-periodo">
+                        <option value="mes">Por mês</option>
+                        <option value="dia" selected>Por dia</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="t-vencimento">Data de Vencimento</label>
+                    <input type="date" id="t-vencimento" required>
+                </div>
+
+                <div class="field">
+                    <label for="t-pagamento">Data de Pagamento (ou data atual)</label>
+                    <input type="date" id="t-pagamento" required>
+                </div>
+            </div>
+
+            <p class="formula">
+                A multa fixa (opcional) é aplicada uma única vez sobre o valor do título. A porcentagem diária é aplicada sobre o valor e multiplicada pelos dias de atraso.<br>
+                Fórmula: <b id="formula-txt">multa: valor × (multa % ÷ 100) + valor × (% ÷ 100) × dias vencidos</b>
+            </p>
+
+            <div id="form-msg" class="form-msg" role="status" hidden></div>
+
+            <button type="submit" class="primary">
+                <span>ADICIONAR TÍTULO</span>
+                <strong>+</strong>
+            </button>
+        </form>
+    </section>
+
+    <section class="card" id="lista-titulos">
+        <div class="title">
+            <div class="number green">03</div>
+            <div>
+                <h2>Títulos adicionados</h2>
+                <p id="lista-sub">Agrupados por cliente, com o valor calculado destacado.</p>
+            </div>
+        </div>
+
+        <div class="totais" id="totais" hidden>
+            <div><small>CLIENTES</small><strong id="tot-clientes">0</strong></div>
+            <div><small>TÍTULOS</small><strong id="tot-titulos">0</strong></div>
+            <div><small>VALOR ORIGINAL</small><strong id="tot-original">R$ 0,00</strong></div>
+            <div class="destaque"><small id="lbl-juros">CUSTAS</small><strong id="tot-juros">R$ 0,00</strong></div>
+            <div class="total"><small>TOTAL ATUALIZADO</small><strong id="tot-atualizado">R$ 0,00</strong></div>
+        </div>
+
+        <div id="clientes-container" class="clientes"></div>
+
+        <div class="opcoes-relatorio" id="opcao-pct" hidden>
+            <label class="check">
+                <input type="checkbox" id="mostrar-pct">
+                <span class="box"></span>
+                <span class="txt">
+                    <strong>Mostrar a porcentagem no relatório</strong>
+                    <small>A porcentagem do protesto é sigilosa. Deixe desmarcado para ocultá-la na impressão, no PDF e no Excel.</small>
+                </span>
+            </label>
+        </div>
+
+        <div id="export-msg" class="form-msg" role="status" hidden></div>
+
+        <div class="export-grid">
+            <button type="button" class="primary print" id="btn-imprimir">
+                <span>IMPRIMIR</span><strong>🖨️</strong>
+            </button>
+            <button type="button" class="primary pdf" id="btn-pdf">
+                <span>EXPORTAR PDF</span><strong>📄</strong>
+            </button>
+            <button type="button" class="primary excel" id="btn-excel">
+                <span>EXPORTAR EXCEL</span><strong>📊</strong>
+            </button>
+        </div>
+
+        <button type="button" class="secondary" id="btn-limpar">Limpar lista</button>
+    </section>
+</div>
+
+<!-- =====================================================
+     VISÃO 3 — CONSULTA AVANÇADA (CNPJ E INVESTIGAÇÃO)
+===================================================== -->
+<div class="view" id="view-consulta-avancada">
+
+    <!-- Consulta de CNPJ e investigação -->
+    <section class="card" id="consulta-cnpj">
+        <div class="title">
+            <div class="number">01</div>
+            <div>
+                <h2>Consulta de CNPJ</h2>
+                <p>Dados da Receita Federal, contatos e atalhos de investigação do cliente.</p>
+            </div>
+        </div>
+
+        <form id="form-cnpj" novalidate>
+            <div class="cnpj-busca">
+                <div class="field">
+                    <label for="cnpj-input">CNPJ da empresa</label>
+                    <input type="text" id="cnpj-input" placeholder="00.000.000/0000-00" maxlength="18"
+                           autocomplete="off" spellcheck="false">
+                </div>
+
+                <button type="submit" class="primary" id="btn-cnpj">
+                    <span>CONSULTAR</span><strong>→</strong>
+                </button>
+
+                <div class="investigar">
+                    <button type="button" class="btn-investigar" id="btn-investigar"
+                            aria-haspopup="true" aria-expanded="false" aria-controls="menu-investigar">
+                        <span>🔍 Investigar Cliente</span><span aria-hidden="true">▾</span>
+                    </button>
+
+                    <div class="investigar-menu" id="menu-investigar" role="menu" hidden>
+                        <button type="button" role="menuitem" data-fonte="casadosdados">
+                            <strong>Contatos e Sócios</strong><span>Casa dos Dados</span>
+                        </button>
+                        <button type="button" role="menuitem" data-fonte="cnpjbiz">
+                            <strong>Conexões Societárias</strong><span>CNPJ.biz</span>
+                        </button>
+                        <button type="button" role="menuitem" data-fonte="jusbrasil">
+                            <strong>Risco Jurídico</strong><span>JusBrasil · consulta processual</span>
+                        </button>
+                        <button type="button" role="menuitem" data-fonte="protestos">
+                            <strong>Protestos Nacionais</strong><span>Copia o CNPJ e abre a pesquisa de protestos</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <small class="cnpj-dica">Aceita CNPJ numérico e alfanumérico (padrão vigente desde julho de 2026). Pode colar com ou sem pontuação.</small>
+            <div id="cnpj-msg" class="form-msg" role="status" hidden></div>
+            <div id="cnpj-historico" class="cnpj-hist" hidden></div>
+        </form>
+    </section>
+
+    <div id="cnpj-resultado" hidden></div>
+</div>
+
+<!-- ACESSO RESTRITO -->
+<div class="view" id="view-acesso">
+    <section class="card">
+        <div class="title"><div class="number">🔒</div><div><h2>Acesso restrito</h2><p>Área do desenvolvedor: Planilha, WhatsApp e E-mail.</p></div></div>
+        <form id="form-acesso" autocomplete="off" novalidate>
+            <div class="fields">
+                <div class="field"><label for="ac-user">Login</label><input type="text" id="ac-user" autocomplete="off"></div>
+                <div class="field"><label for="ac-pass">Senha</label><input type="password" id="ac-pass" autocomplete="off"></div>
+            </div>
+            <div id="ac-msg" class="form-msg" role="status" hidden></div>
+            <button type="submit" class="primary"><span>ENTRAR</span><strong>→</strong></button>
+        </form>
+    </section>
+</div>
+
+<!-- VISÃO 4 — PLANILHA DO DIA -->
+<div class="view" id="view-planilha">
+    <section class="card">
+        <div class="title"><div class="number">01</div><div><h2>Planilha do dia</h2><p>Importe o arquivo (.xlsx, .xls ou .csv). As colunas são reconhecidas pelo nome, em qualquer ordem. Nada é salvo: ao fechar a página, os dados desaparecem.</p></div></div>
+        <div class="field"><label for="pl-arquivo">Arquivo</label><input type="file" id="pl-arquivo" accept=".xlsx,.xls,.csv"></div>
+        <div id="pl-msg" class="form-msg" role="status" hidden></div>
+        <div id="pl-map" class="pl-map" hidden></div>
+    </section>
+    <section class="card" id="pl-lista" hidden>
+        <div class="title"><div class="number orange">02</div><div><h2>Pesquisa e organização</h2><p>Busque por qualquer dado, filtre por atraso e agrupe por cliente.</p></div></div>
+        <div class="pl-bar">
+            <input type="search" id="pl-busca" placeholder="Pesquisar: razão social, título, valor, data…">
+            <select id="pl-faixa"><option value="">Todos os atrasos</option><option value="av">A vencer</option><option value="1-5">1 a 5 dias</option><option value="6-30">6 a 30 dias</option><option value="31-60">31 a 60 dias</option><option value="61-90">61 a 90 dias</option><option value="91+">Mais de 90 dias</option></select>
+            <input type="text" id="pl-min" inputmode="decimal" placeholder="Valor mínimo (R$)">
+            <label class="pl-ck"><input type="checkbox" id="pl-grp">Agrupar por cliente</label>
+        </div>
+        <div class="pl-tot" id="pl-tot"></div>
+        <div class="pl-tab" id="pl-tab"></div>
+        <button type="button" class="secondary" id="pl-xls">Exportar resultado (Excel)</button>
+    </section>
+</div>
+
+<div class="view" id="view-whatsapp"><section class="card" id="wa-root"></section></div>
+<div class="view" id="view-email"><section class="card" id="em-root"></section></div>
+
+</main>
+
+<footer>
+    <div>
+        <strong>Calculadora de Títulos</strong>
+        <small>Ferramenta independente e gratuita.</small>
+    </div>
+
+    <div class="creator">
+        <small>Desenvolvedor: Kauã Souza</small>
+        <a href="https://github.com/KauaSouzaSP" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.linkedin.com/in/kau%C3%A3-souza-79a0551a5/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </div>
+</footer>
+
+<script src="index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="acesso.js"></script>
+<script src="planilha.js"></script>
+</body>
+</html>
